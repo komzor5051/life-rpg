@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кабинет персонажа</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter+Tight:wght@500;700;800&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0F1011;--panel:#17181B;--panel2:#1E2024;--line:#272A2F;--ink:#E6E6E1;--mute:#8F9298;--acc:#C8F04C;--r:16px;--r2:10px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Onest,system-ui,sans-serif;font-size:15.5px;line-height:1.5}
+body{background-image:radial-gradient(ellipse at 20% -10%,#1b1d21 0%,var(--bg) 60%)}
+h1,h2,h3,.tt{font-family:"Inter Tight",sans-serif;letter-spacing:-.01em}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+button{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:var(--r2);padding:9px 16px;cursor:pointer;font-size:.86em;font-weight:500;transition:background .15s,border-color .15s,color .15s}
+button:hover{background:#26292E;border-color:#33373D}
+button.acc{background:var(--acc);border-color:var(--acc);color:#0F1011;font-weight:600}
+button.acc:hover{background:#D8F86E;border-color:#D8F86E}
+button.ghost{background:transparent;color:var(--mute)}
+input,select,textarea{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r2);background:#121316;color:var(--ink);width:100%}
+input:focus{outline:none;border-color:var(--acc)}
+a{color:inherit}
+
+.top{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(15,16,17,.8);backdrop-filter:blur(10px);position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line)}
+.top .tt{font-weight:700;font-size:1.05em}
+.top .meta{color:var(--mute);font-size:.9em;margin-left:8px}
+.layout{display:grid;grid-template-columns:400px 1fr;gap:18px;padding:18px 24px;max-width:1440px;margin:0 auto}
+.char{position:sticky;top:76px;align-self:start;display:flex;flex-direction:column;gap:16px}
+
+.win{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.win>.hd{color:var(--mute);padding:14px 18px 0;font-family:"Inter Tight";font-weight:600;font-size:.86em;display:flex;justify-content:space-between;align-items:center}
+.win>.hd span:first-child{flex:1}
+.win>.hd .r{color:var(--acc);font-family:"IBM Plex Mono";font-size:.92em}
+.win>.bd{padding:12px 18px 18px}
+
+.stage{position:relative;height:560px;background:#0C0D0F;overflow:hidden}
+.stage canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:14px}
+.hud .lvl{background:var(--acc);color:#0F1011;padding:8px 14px;border-radius:999px;font-family:"Inter Tight";font-weight:800;font-size:1em}
+.hud .who{background:rgba(15,16,17,.72);padding:14px 16px;border-radius:var(--r2);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.06)}
+.name{font-size:1.6em;font-weight:700;line-height:1.1}
+.cls{color:var(--mute);font-size:.86em;margin-top:2px}
+.dmg{position:absolute;left:50%;top:40%;transform:translateX(-50%);font-family:"Inter Tight";font-weight:800;font-size:2.2em;color:var(--acc);animation:dmg 1.4s forwards;pointer-events:none}
+@keyframes dmg{0%{opacity:0;transform:translate(-50%,20px) scale(.8)}15%{opacity:1;transform:translate(-50%,0) scale(1.1)}100%{opacity:0;transform:translate(-50%,-80px) scale(1)}}
+
+.seg{display:flex;gap:3px;height:10px}
+.seg i{flex:1;background:#2A2D33;display:block;border-radius:3px;transition:background .3s}
+.seg i.on{background:var(--acc)}
+.seg.ink i.on,.seg.hp i.on{background:#C9CBC6}
+.kv{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:9px 0;font-size:.92em;color:var(--mute)}
+.kv b{font-family:"IBM Plex Mono";font-weight:600;color:var(--ink)}
+.lbl{font-size:.8em;color:var(--mute)}
+.lbl.row{display:flex;justify-content:space-between;margin:12px 0 6px}
+.freezes{display:inline-flex;gap:4px;vertical-align:middle}
+.freezes i{width:10px;height:10px;border:1.5px solid var(--acc);border-radius:3px;display:block}
+.freezes i.on{background:var(--acc)}
+
+.stats{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center}
+.st{font-size:.88em;margin-bottom:10px}
+.st .r{display:flex;justify-content:space-between;margin-bottom:5px}
+.st .seg{height:8px}
+.st .n{font-family:"IBM Plex Mono";font-weight:600}
+
+.tabs{display:flex;gap:4px;padding:4px;border:1px solid var(--line);background:var(--panel);border-radius:999px;margin-bottom:16px;overflow-x:auto}
+.tabs button{border:0;background:transparent;border-radius:999px;padding:9px 14px;flex:1;white-space:nowrap;color:var(--mute);font-size:.86em}
+.tabs button:hover{background:var(--panel2);color:var(--ink)}
+.tabs button.on{background:var(--panel2);color:var(--acc)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.big{font-family:"Inter Tight";font-weight:800;font-size:2.3em;line-height:1.05;letter-spacing:-.02em}
+.note{color:var(--mute);font-size:.86em;margin-top:6px}
+.stack>*+*{margin-top:16px}
+
+.quest .title{font-family:"Inter Tight";font-weight:700;font-size:1.15em;margin-bottom:4px}
+.quest .boss{font-size:.88em;color:var(--mute);margin-bottom:10px}
+.quest .steps{margin-top:12px;border-top:1px solid var(--line)}
+.step{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:.94em;cursor:pointer;border-radius:6px}
+.step:hover{color:var(--acc)}
+.step i{width:18px;height:18px;border:1.5px solid var(--mute);border-radius:6px;display:block;flex:none}
+.step.done i{background:var(--acc);border-color:var(--acc)}
+.step.done span{text-decoration:line-through;color:var(--mute)}
+.quest .act{display:flex;gap:8px;margin-top:14px}
+.back .quest{opacity:.65}
+
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.badge{border:1px solid var(--line);border-radius:var(--r2);padding:14px;min-height:100px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;font-size:.88em;color:var(--mute);background:var(--panel2);transition:border-color .15s,transform .15s}
+.badge:hover{border-color:#3A3E45;transform:translateY(-2px)}
+.badge .ic{width:26px;height:26px;border:1.5px solid currentColor;border-radius:50%;display:block;margin-bottom:10px}
+.badge.on{border-color:var(--acc);background:#1B2210;color:var(--ink)}
+.badge.on .ic{background:var(--acc);border-color:var(--acc)}
+.badge small{font-family:"IBM Plex Mono";font-size:.8em}
+.sec{margin:18px 0 10px;font-size:.84em;color:var(--mute);font-weight:600}
+
+.inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.item{border:1px solid var(--line);border-radius:var(--r2);padding:14px;font-size:.88em;background:var(--panel2)}
+.item.live{border-color:var(--acc)}
+.item.dead{opacity:.4}
+.item .v{font-family:"IBM Plex Mono";font-weight:600;font-size:1.2em;margin-top:8px}
+
+.skill{display:grid;grid-template-columns:120px 1fr 48px;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.skill .seg{height:14px;cursor:pointer}
+.skill .seg i{border:1px solid var(--line);background:transparent;border-radius:4px}
+.skill .seg i.on{background:var(--acc);border-color:var(--acc)}
+.skill .seg i:hover{background:#2A2D33}
+.crit{grid-column:1/-1;font-size:.82em;color:var(--mute);display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.crit div{border-left:2px solid var(--line);padding-left:10px}
+.crit div.on{border-left-color:var(--acc);color:var(--ink)}
+
+table{width:100%;border-collapse:collapse;font-size:.9em}
+th{text-align:left;font-size:.8em;color:var(--mute);font-weight:500;padding:8px;border-bottom:1px solid var(--line)}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.mono{white-space:nowrap}
+.x{border:0;background:transparent;padding:2px 8px;color:var(--mute)}
+.x:hover{background:transparent;color:var(--acc)}
+
+.rules h2{font-size:1.05em;margin:22px 0 6px;color:var(--acc)}
+.rules p,.rules li{font-size:.92em}
+.rules table{margin:8px 0}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
+.overlay.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);width:min(560px,100%);max-height:90vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.modal .bd{padding:18px}
+.f{margin-bottom:14px}
+.f label{display:block;font-size:.82em;color:var(--mute);margin-bottom:6px}
+.typebar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.typebar button{flex:1}
+.typebar button.on{background:var(--acc);color:#0F1011;border-color:var(--acc)}
+.lvlup{text-align:center;padding:40px 24px}
+.lvlup .n{font-family:"Inter Tight";font-weight:800;font-size:6em;line-height:1;color:#0F1011;background:var(--acc);display:inline-block;padding:10px 34px;border-radius:24px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--acc);color:#0F1011;padding:10px 18px;border-radius:999px;font-family:"IBM Plex Mono";font-weight:600;z-index:30;opacity:0;transition:opacity .2s}
+.toast.on{opacity:1}
+.empty{color:var(--mute);font-size:.9em;padding:10px 0}
+@media (max-width:900px){.layout{grid-template-columns:1fr}.char{position:static}.grid2{grid-template-columns:1fr}.stats{grid-template-columns:1fr}.stage{height:420px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div><span class="tt">Кабинет персонажа</span> <span class="meta" id="topmeta"></span></div>
+  <div style="display:flex;gap:8px"><button class="ghost" onclick="load()">Обновить</button><button class="acc" onclick="openLog()">+ Записать действие</button></div>
+</header>
+<main class="layout">
+  <aside class="char" id="char"></aside>
+  <section>
+    <nav class="tabs" id="tabs"></nav>
+    <div id="panel"></div>
+  </section>
+</main>
+<div class="overlay" id="ov"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="three.min.js"></script>
+<script>
+// ---------- утилиты ----------
+const $ = (s, r = document) => r.querySelector(s);
+const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
+const num = v => Number(String(v ?? "").replace(/\s/g, "")) || 0;
+const fmt = n => Math.round(n).toLocaleString("ru-RU");
+const plural = (n, a, b, c) => n % 10 === 1 && n % 100 !== 11 ? a : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? b : c;
+const iso = d => d.toLocaleDateString("sv-SE");
+const D = s => { const [y, m, d] = String(s).slice(0, 10).split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const isoWeek = d => { const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - day); const y = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); return x.getUTCFullYear() + "-" + Math.ceil((((x - y) / 864e5) + 1) / 7); };
+const seg = (ratio, n = 10, cls = "") => { const s = h("div", "seg " + cls); const on = Math.round(Math.max(0, Math.min(1, ratio)) * n); for (let i = 0; i < n; i++) s.appendChild(h("i", i < on ? "on" : "")); return s; };
+const toast = t => { const e = $("#toast"); e.textContent = t; e.classList.add("on"); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove("on"), 2200); };
+const api = (p, b) => fetch(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }).then(r => r.json());
+
+// ---------- состояние ----------
+let S = null, M = null, tab = localStorage.getItem("rpg.tab") || "overview";
+function compute(s) {
+  const cfg = s.cfg, today = D(s.today), start = D(cfg.start || s.today);
+  const J = s.journal.map(i => ({ ...i, date: D(i.d) }));
+  const by = t => J.filter(i => i.type === t);
+  const sameMonth = i => i.date.getFullYear() === today.getFullYear() && i.date.getMonth() === today.getMonth();
+  const sameWeek = i => isoWeek(i.date) === isoWeek(today);
+  const cnt = (a, f = "n") => a.reduce((x, i) => x + (i[f] === undefined ? (f === "n" ? 1 : 0) : num(i[f])), 0);
+  const money = by("money"), sales = by("sale"), content = by("content"), practice = by("practice"), system = by("system"), days = by("day");
+  const moneyAll = cnt(money, "sum"), moneyMonth = cnt(money.filter(sameMonth), "sum"), moneyWeek = cnt(money.filter(sameWeek), "sum");
+  const perLevel = num(cfg.xp_per_level) || 250;
+  const xpResult = Math.floor(moneyAll / 1000), level = Math.floor(xpResult / perLevel) + 1, xpIn = xpResult - (level - 1) * perLevel;
+  const xpProcess = cnt(sales) + cnt(content) + cnt(practice, "hours");
+  const goals = { money: num(cfg.monthly_goal) || 300000, week: num(cfg.weekly_goal) || 75000, sales: (num(cfg.daily_sales_goal) || 5) * 7, content: (num(cfg.daily_content_goal) || 1) * 7, practice: 7, system: 35 };
+  const wk = { sales: cnt(sales.filter(sameWeek)), content: cnt(content.filter(sameWeek)), practice: cnt(practice.filter(sameWeek), "hours"), system: cnt(system.filter(sameWeek)) };
+  const saleDays = new Set(sales.map(i => iso(i.date)));
+  const freezes = num(cfg.freezes_per_month) || 2;
+  let streak = 0, missed = 0, frozen = {}, cur = saleDays.has(iso(today)) ? today : addDays(today, -1);
+  while (cur >= start) {
+    const k = iso(cur);
+    if (saleDays.has(k)) { streak++; missed = 0; }
+    else { missed++; const mk = k.slice(0, 7); frozen[mk] = (frozen[mk] || 0) + 1; if (missed >= 2 || frozen[mk] > freezes) break; }
+    cur = addDays(cur, -1);
+  }
+  const dayN = Math.max(0, Math.round((today - start) / 864e5) + 1);
+  const questProgress = q => { if (!q.match) return moneyMonth; const re = new RegExp(q.match, "i"); return cnt(money.filter(i => re.test(i.src || "")), "sum"); };
+  return { cfg, today, start, J, money, sales, days, moneyAll, moneyMonth, moneyWeek, perLevel, xpResult, level, xpIn, xpProcess, goals, wk, streak, freezes, frozenNow: frozen[iso(today).slice(0, 7)] || 0, dayN, questProgress };
+}
+
+async function load() {
+  S = await fetch("/api/state").then(r => r.json());
+  const prev = M ? M.level : Number(localStorage.getItem("rpg.level") || 0);
+  M = compute(S);
+  render();
+  if (prev && M.level > prev) levelUp(M.level);
+  localStorage.setItem("rpg.level", M.level);
+}
+
+// ---------- рендер ----------
+function render() {
+  $("#topmeta").textContent = `· день ${M.dayN} · ${M.today.toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`;
+  renderChar(); renderTabs(); renderPanel();
+}
+function win(title, right) { const w = h("div", "win"); const hd = h("div", "hd", `<span>${title}</span>`); if (right) hd.appendChild(h("span", "r", right)); w.appendChild(hd); const bd = h("div", "bd"); w.appendChild(bd); return [w, bd]; }
+function renderChar() {
+  const c = $("#char"); c.innerHTML = "";
+  const [w, bd] = win("Персонаж", `LVL ${M.level}`);
+  const stage = h("div", "stage"); stage.id = "stage";
+  const hud = h("div", "hud");
+  const hudTop = h("div", "", ""); hudTop.style.display = "flex"; hudTop.style.justifyContent = "space-between"; hudTop.style.alignItems = "center";
+  hudTop.appendChild(h("div", "who", `<div class="lbl">Босс недели</div><div class="mono" style="font-weight:600">${M.moneyWeek >= M.goals.week ? "повержен" : fmt(M.goals.week - M.moneyWeek) + " ₽ HP"}</div>`));
+  hudTop.appendChild(h("div", "lvl", "LVL " + M.level)); hud.appendChild(hudTop);
+  const who = h("div", "who"); who.appendChild(h("div", "name", M.cfg.name || "Персонаж")); who.appendChild(h("div", "cls", M.cfg.class || ""));
+  who.appendChild(h("div", "lbl row", `<span>Опыт</span><span class="mono">${M.xpIn} / ${M.perLevel}</span>`)); who.appendChild(seg(M.xpIn / M.perLevel, 24));
+  hud.appendChild(who); stage.appendChild(hud); w.insertBefore(stage, bd);
+  bd.appendChild(h("div", "note", `До уровня ${M.level + 1}: ${fmt((M.perLevel - M.xpIn) * 1000)} ₽`));
+  bd.appendChild(h("div", "lbl row", `<span>Стрик продаж</span><span class="mono">${M.streak} ${plural(M.streak, "день", "дня", "дней")}</span>`));
+  const fr = h("div", "freezes"); for (let i = 0; i < M.freezes; i++) fr.appendChild(h("i", i < M.freezes - M.frozenNow ? "on" : ""));
+  const frw = h("div", "note", "Заморозки на месяц "); frw.appendChild(fr); bd.appendChild(frw);
+  bd.appendChild(h("div", "", "")).style.height = "10px";
+  const kv = (k, v) => bd.appendChild(h("div", "kv", `<span>${k}</span><b>${v}</b>`));
+  kv("XP результата", fmt(M.xpResult)); kv("XP процесса", fmt(M.xpProcess)); kv("Всего пришло", fmt(M.moneyAll) + " ₽"); kv("День игры", M.dayN);
+  c.appendChild(w);
+  initStage(stage);
+
+  const [w2, b2] = win("Характеристики");
+  const st = h("div", "stats");
+  st.appendChild(radar([["Деньги", M.moneyMonth / M.goals.money], ["Продажи", M.wk.sales / M.goals.sales], ["Контент", M.wk.content / M.goals.content], ["Знания", M.wk.practice / M.goals.practice], ["Система", M.wk.system / M.goals.system]]));
+  const bars = h("div");
+  const row = (l, v, r, cls = "") => { const e = h("div", "st"); e.innerHTML = `<div class="r"><span>${l}</span><span class="n">${v}</span></div>`; e.appendChild(seg(r, 12, cls)); bars.appendChild(e); };
+  row("Деньги", fmt(M.moneyMonth) + " ₽", M.moneyMonth / M.goals.money);
+  row("Продажи", M.wk.sales, M.wk.sales / M.goals.sales);
+  row("Контент", M.wk.content, M.wk.content / M.goals.content);
+  row("Знания", M.wk.practice + " ч", M.wk.practice / M.goals.practice);
+  row("Система", M.wk.system, M.wk.system / M.goals.system, "ink");
+  st.appendChild(bars); b2.appendChild(st);
+  b2.appendChild(h("div", "note", "Деньги за месяц, остальное за неделю. Уровень растёт только от денег. Система справочно."));
+  c.appendChild(w2);
+}
+
+// ---------- 3D сцена ----------
+let SC = null, PENDING_WEEK = null;
+function keyOut(img) { // вырезает маджента-фон
+  const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height;
+  const ctx = cv.getContext("2d"); ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, cv.width, cv.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const r = p[i], g = p[i + 1], b = p[i + 2], m = Math.min(r, b) - g;
+    if (m > 60) { const a = Math.max(0, 1 - (m - 60) / 60); p[i + 3] = Math.round(255 * a); if (a > 0) { p[i] = Math.min(r, g + 40); p[i + 2] = Math.min(b, g + 40); } }
+  }
+  ctx.putImageData(d, 0, 0); return cv;
+}
+const loadTex = (src, key) => new Promise(res => { if (!src) return res(null); const img = new Image(); img.onload = () => { const t = new THREE.CanvasTexture(key ? keyOut(img) : img); t.encoding = THREE.sRGBEncoding; t.asp = img.width / img.height; res(t); }; img.onerror = () => res(null); img.src = src; });
+const ease = (t, a, b) => a + (b - a) * (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+function initStage(el) {
+  if (SC) { cancelAnimationFrame(SC.raf); SC.renderer.dispose(); SC = null; }
+  if (!window.THREE) return;
+  const W = el.clientWidth, H = el.clientHeight;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setPixelRatio(1); renderer.setSize(W, H); renderer.outputEncoding = THREE.sRGBEncoding;
+  el.insertBefore(renderer.domElement, el.firstChild);
+  const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x0d0d0d, 9, 20);
+  const camera = new THREE.PerspectiveCamera(32, W / H, 0.1, 100); camera.position.set(0.7, 2.3, 7.4); camera.lookAt(0.7, 1.8, 0);
+  scene.add(new THREE.GridHelper(40, 40, 0x2c2c2b, 0x1a1a19));
+  const HX = -0.4, BX = 2.2; // позиции героя и босса
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.45, 0.22, 72), new THREE.MeshStandardMaterial({ color: 0x141414, metalness: .3, roughness: .5 })); ped.position.set(HX, 0.11, 0); scene.add(ped);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.26, 0.02, 12, 120), new THREE.MeshBasicMaterial({ color: 0xc8f04c })); ring.rotation.x = Math.PI / 2; ring.position.set(HX, 0.225, 0); scene.add(ring);
+  scene.add(new THREE.AmbientLight(0xffffff, .55));
+  const key = new THREE.DirectionalLight(0xffffff, .9); key.position.set(3, 6, 4); scene.add(key);
+  const rim = new THREE.PointLight(0xc8f04c, 2.2, 12); rim.position.set(-3, 3.5, -2.5); scene.add(rim);
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(.06, 12, 12), new THREE.MeshBasicMaterial({ color: 0xc8f04c })); glow.position.copy(rim.position); scene.add(glow);
+
+  // герой
+  const hero = new THREE.Group(); hero.position.set(HX, 0, 0); scene.add(hero);
+  let sprite = null, tex = [null, null];
+  const sh = new THREE.Mesh(new THREE.CircleGeometry(.85, 48), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .55 })); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.23; hero.add(sh);
+  Promise.all([loadTex(S.hero || S.avatar, !!S.hero), loadTex(S.hero2, true)]).then(([t1, t2]) => {
+    tex = [t1, t2 || t1]; if (!t1) return;
+    const hgt = 3.4; sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: t1, transparent: true }));
+    sprite.scale.set(hgt * t1.asp, hgt, 1); sprite.position.y = 0.22 + hgt / 2; hero.add(sprite); setPose(M.level % 2); renderer.render(scene, camera);
+  });
+  const setPose = i => { if (sprite && tex[i]) { sprite.material.map = tex[i]; sprite.material.needsUpdate = true; sprite.scale.x = sprite.scale.y * tex[i].asp; } };
+
+  // босс: тёмный кристалл, здоровье от недельного босса
+  const boss = new THREE.Group(); boss.position.set(BX, 2.1, -1.6); scene.add(boss);
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.62, 0), new THREE.MeshStandardMaterial({ color: 0x0c0c0c, metalness: .6, roughness: .35, emissive: 0x000000 })); boss.add(core);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(core.geometry), new THREE.LineBasicMaterial({ color: 0xc8f04c })); boss.add(edges);
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.01, 8, 120), new THREE.MeshBasicMaterial({ color: 0x3a4a12 })); halo.rotation.x = Math.PI / 2.6; boss.add(halo);
+  const bossHp = () => Math.max(0, 1 - (PENDING_WEEK ?? M.moneyWeek) / M.goals.week);
+  const applyBoss = () => { const hp = bossHp(); boss.visible = hp > 0; const sc = .55 + .45 * hp; core.scale.set(sc, sc, sc); edges.scale.set(sc, sc, sc); };
+  applyBoss();
+  // частицы
+  const N = 90, pg = new THREE.BufferGeometry(); const pp = new Float32Array(N * 3), pv = []; pg.setAttribute("position", new THREE.BufferAttribute(pp, 3));
+  const pts = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xc8f04c, size: .07, transparent: true, opacity: 0 })); scene.add(pts);
+
+  const mouse = { x: 0, y: 0 }; el.onmousemove = e => { const r = el.getBoundingClientRect(); mouse.x = (e.clientX - r.left) / r.width - .5; mouse.y = (e.clientY - r.top) / r.height - .5; }; el.onmouseleave = () => { mouse.x = 0; mouse.y = 0; };
+  let t = 0, cx = 0, cy = 0, hit = null, shake = 0, burst = 0, zoom = 0, visible = true, lastFrame = 0;
+  new IntersectionObserver(en => { visible = en[0].isIntersecting; if (visible && SC) { cancelAnimationFrame(SC.raf); SC.raf = requestAnimationFrame(loop); } }, { threshold: 0.05 }).observe(el);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && visible && SC) { cancelAnimationFrame(SC.raf); SC.raf = requestAnimationFrame(loop); } });
+  const loop = (now = 0) => {
+    if (document.hidden || !visible) { renderer.render(scene, camera); return; } // скрыто: один кадр и стоп
+    const active = hit || shake > 0 || burst > 0 || zoom > 0.05 || Math.abs(mouse.x - cx) > 0.002;
+    const fps = active ? 60 : 24;
+    if (now - lastFrame < 1000 / fps) { SC.raf = requestAnimationFrame(loop); return; }
+    lastFrame = now;
+    t += 0.004; cx += (mouse.x - cx) * .05; cy += (mouse.y - cy) * .05;
+    const a = t + cx * 0.9, r = 8.6 - zoom; camera.position.set(Math.sin(a) * r + .3, 2.4 - cy * 1.2, Math.cos(a) * r); camera.lookAt(0.3, 1.75, 0);
+    ring.rotation.z += 0.004; boss.rotation.y += 0.006; core.rotation.x += 0.003; halo.rotation.z += 0.01; boss.position.y = 2.1 + Math.sin(t * 9) * .12;
+    if (hit) { const k = Math.min(1, (performance.now() - hit.t0) / 700);
+      hero.position.x = k < .45 ? ease(k / .45, HX, BX - 1.4) : ease((k - .45) / .55, BX - 1.4, HX); hero.position.z = k < .45 ? ease(k / .45, 0, -0.9) : ease((k - .45) / .55, -0.9, 0);
+      if (k > .4 && !hit.done) { hit.done = true; shake = 1; burst = 1; core.material.emissive.setHex(0xc8f04c); for (let i = 0; i < N; i++) { pp[i * 3] = boss.position.x; pp[i * 3 + 1] = boss.position.y; pp[i * 3 + 2] = boss.position.z; pv[i] = [(Math.random() - .5) * .25, Math.random() * .2, (Math.random() - .5) * .25]; } pts.material.opacity = 1; PENDING_WEEK = null; applyBoss(); }
+      if (k >= 1) { hit = null; hero.position.set(HX, 0, 0); setPose(M.level % 2); } }
+    if (shake > 0) { shake -= .04; boss.position.x = BX + (Math.random() - .5) * shake * .5; boss.position.z = -1.6 + (Math.random() - .5) * shake * .5; core.material.emissive.setHex(shake > .5 ? 0xc8f04c : 0x000000); if (shake <= 0) { boss.position.set(BX, 2.1, -1.6); } }
+    if (burst > 0) { burst -= .02; for (let i = 0; i < N; i++) { pp[i * 3] += pv[i][0]; pp[i * 3 + 1] += pv[i][1]; pp[i * 3 + 2] += pv[i][2]; pv[i][1] -= .012; } pg.attributes.position.needsUpdate = true; pts.material.opacity = Math.max(0, burst); }
+    zoom *= .97;
+    renderer.render(scene, camera); SC.raf = requestAnimationFrame(loop);
+  };
+  SC = { renderer, raf: 0, el, strike: () => { if (hit) return; hit = { t0: performance.now(), done: false }; setPose(1); zoom = 1.4; }, celebrate: () => { zoom = 2.2; burst = 1; pts.material.opacity = 1; for (let i = 0; i < N; i++) { pp[i * 3] = HX; pp[i * 3 + 1] = 2; pp[i * 3 + 2] = 0; pv[i] = [(Math.random() - .5) * .3, Math.random() * .25, (Math.random() - .5) * .3]; } setPose(M.level % 2); }, applyBoss };
+  loop();
+  new ResizeObserver(() => { const w = el.clientWidth, hh = el.clientHeight; renderer.setSize(w, hh); camera.aspect = w / hh; camera.updateProjectionMatrix(); }).observe(el);
+}
+function damage(text) { const st = $("#stage"); if (!st) return; if (SC && SC.strike && text.startsWith("-")) SC.strike(); const d = h("div", "dmg", text); st.appendChild(d); setTimeout(() => d.remove(), 1500); }
+
+function radar(axes) {
+  const ns = "http://www.w3.org/2000/svg", R = 56, C = 75, n = axes.length;
+  const svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", "0 0 150 150"); svg.setAttribute("width", "150"); svg.setAttribute("height", "150");
+  const pt = (i, r) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
+  const poly = (pts, fill, stroke, w) => { const p = document.createElementNS(ns, "polygon"); p.setAttribute("points", pts.map(x => x.join(",")).join(" ")); p.setAttribute("fill", fill); p.setAttribute("stroke", stroke); p.setAttribute("stroke-width", w); return p; };
+  [0.33, 0.66, 1].forEach(k => svg.appendChild(poly(axes.map((_, i) => pt(i, R * k)), "none", "#2A2A29", 1)));
+  axes.forEach((_, i) => { const l = document.createElementNS(ns, "line"); const [x, y] = pt(i, R); l.setAttribute("x1", C); l.setAttribute("y1", C); l.setAttribute("x2", x); l.setAttribute("y2", y); l.setAttribute("stroke", "#2A2A29"); svg.appendChild(l); });
+  svg.appendChild(poly(axes.map(([_, v], i) => pt(i, R * Math.max(.04, Math.min(1, v)))), "#C8F04C", "#F1F1EC", 1.5));
+  axes.forEach(([nme], i) => { const [x, y] = pt(i, R + 12); const t = document.createElementNS(ns, "text"); t.setAttribute("x", x); t.setAttribute("y", y + 3); t.setAttribute("text-anchor", "middle"); t.setAttribute("font-size", "7.5"); t.setAttribute("fill", "#6E6E68"); t.setAttribute("font-family", "Inter Tight"); t.textContent = nme.toUpperCase(); svg.appendChild(t); });
+  return svg;
+}
+const TABS = [["overview", "Обзор"], ["quests", "Квесты"], ["ach", "Достижения"], ["bag", "Багаж"], ["skills", "Навыки"], ["log", "Журнал"], ["rules", "Правила"]];
+function renderTabs() { const t = $("#tabs"); t.innerHTML = ""; TABS.forEach(([k, l]) => { const b = h("button", k === tab ? "on" : "", l); b.onclick = () => { tab = k; localStorage.setItem("rpg.tab", k); renderTabs(); renderPanel(); }; t.appendChild(b); }); }
+function renderPanel() { const p = $("#panel"); p.innerHTML = ""; ({ overview, quests, ach, bag, skills, log, rules })[tab](p); }
+
+function questCard(q, full) {
+  const [w, bd] = win(q.kind === "main" ? "Main quest" : q.kind === "side" ? "Side quest" : "Рюкзак", q.deadline ? "до " + D(q.deadline).toLocaleDateString("ru-RU", { day: "numeric", month: "short" }) : "");
+  w.classList.add("quest");
+  bd.appendChild(h("div", "title", q.title));
+  bd.appendChild(h("div", "boss", "Босс: " + (q.boss || "не назван")));
+  if (q.kind !== "backpack") {
+    const prog = M.questProgress(q), tgt = num(q.target) || M.goals.money;
+    bd.appendChild(h("div", "lbl row", `<span>Здоровье босса</span><span class="mono">${fmt(Math.max(0, tgt - prog))} ₽</span>`));
+    bd.appendChild(seg(1 - prog / tgt, 20, "hp"));
+    bd.appendChild(h("div", "note", prog >= tgt ? "Босс повержен" : `нанесено ${fmt(prog)} из ${fmt(tgt)} ₽`));
+  }
+  if (full && q.steps.length) {
+    const st = h("div", "steps");
+    q.steps.forEach(s => { const e = h("div", "step" + (s.done ? " done" : ""), `<i></i><span>${s.text}</span>`); e.onclick = async () => { await api("/api/quest/step", { file: q.file, text: s.text, done: !s.done }); toast(s.done ? "Шаг открыт" : "Шаг закрыт"); load(); }; st.appendChild(e); });
+    bd.appendChild(st);
+  }
+  if (full) {
+    const act = h("div", "act");
+    if (q.kind === "side") { const b = h("button", "ghost", "В рюкзак"); b.onclick = async () => { await api("/api/quest", { file: q.file, patch: { kind: "backpack", status: "paused" } }); toast("Квест убран в рюкзак"); load(); }; act.appendChild(b); }
+    if (q.kind === "backpack") { const b = h("button", "", "Достать как side quest"); b.onclick = async () => { const sides = S.quests.filter(x => x.kind === "side").length; if (sides >= 2 && !confirm("Уже два side quest. Правило: не больше двух. Всё равно достать?")) return; await api("/api/quest", { file: q.file, patch: { kind: "side", status: "active" } }); toast("Квест активен"); load(); }; act.appendChild(b); }
+    bd.appendChild(act);
+  }
+  return w;
+}
+function overview(p) {
+  const g = h("div", "grid2");
+  const [wb, bb] = win("Недельный босс", isoWeek(M.today).split("-")[1] + " неделя");
+  bb.appendChild(h("div", "big", fmt(Math.max(0, M.goals.week - M.moneyWeek)) + " ₽"));
+  bb.appendChild(h("div", "note", "здоровья у босса. Он умирает, когда за неделю приходит " + fmt(M.goals.week) + " ₽"));
+  bb.appendChild(h("div", "", "")).style.height = "10px";
+  bb.appendChild(seg(1 - M.moneyWeek / M.goals.week, 20, "hp"));
+  bb.appendChild(h("div", "note", M.moneyWeek >= M.goals.week ? "Босс повержен" : `нанесено ${fmt(M.moneyWeek)} ₽`));
+  g.appendChild(wb);
+  const main = S.quests.find(q => q.kind === "main");
+  if (main) g.appendChild(questCard(main, false));
+  p.appendChild(g);
+  const sides = S.quests.filter(q => q.kind === "side");
+  if (sides.length) { const g2 = h("div", "grid2"); g2.style.marginTop = "14px"; sides.slice(0, 2).forEach(q => g2.appendChild(questCard(q, false))); p.appendChild(g2); }
+  const [wd, bdd] = win("Сегодня", iso(M.today));
+  wd.style.marginTop = "14px";
+  const todayJ = M.J.filter(i => iso(i.date) === iso(M.today));
+  const done = { sale: todayJ.some(i => i.type === "sale"), content: todayJ.some(i => i.type === "content"), day: todayJ.some(i => i.type === "day") };
+  [["sale", "Утром одно прямое действие с деньгами"], ["content", "Днём одна публикация"], ["day", "Вечером пять минут в журнале: деньги, энергия, что бросил"]].forEach(([k, t]) => {
+    const e = h("div", "step" + (done[k] ? " done" : ""), `<i></i><span>${t}</span>`); e.onclick = () => openLog(k === "sale" ? "sale" : k === "content" ? "content" : "day"); bdd.appendChild(e);
+  });
+  p.appendChild(wd);
+  const last = M.days.sort((a, b) => b.date - a.date).slice(0, 3);
+  if (last.length) { const [wl, bl] = win("Последние вечера"); wl.style.marginTop = "14px"; last.forEach(i => bl.appendChild(h("div", "kv", `<span>${iso(i.date).slice(5)} · энергия ${i.energy ?? "?"}/10</span><span style="color:var(--mute)">${i.src || ""}</span>`))); p.appendChild(wl); }
+}
+function quests(p) {
+  const main = S.quests.filter(q => q.kind === "main"), side = S.quests.filter(q => q.kind === "side"), back = S.quests.filter(q => q.kind === "backpack");
+  const st = h("div", "stack");
+  main.forEach(q => st.appendChild(questCard(q, true)));
+  if (side.length > 2) st.appendChild(h("div", "note", "Side quest больше двух. Правило: один уходит в рюкзак."));
+  const g = h("div", "grid2"); side.forEach(q => g.appendChild(questCard(q, true))); st.appendChild(g);
+  st.appendChild(h("h3", "sec", "Рюкзак · XP не даёт"));
+  const gb = h("div", "grid2 back"); back.forEach(q => gb.appendChild(questCard(q, true))); st.appendChild(gb);
+  p.appendChild(st);
+}
+function ach(p) {
+  const done = S.achievements.filter(a => a.checked).length;
+  const [w, bd] = win("Достижения", `${done} / ${S.achievements.length}`);
+  const secs = [...new Set(S.achievements.map(a => a.section))];
+  secs.forEach(s => {
+    bd.appendChild(h("h3", "sec", s));
+    const g = h("div", "badges");
+    S.achievements.filter(a => a.section === s).forEach(a => {
+      const b = h("div", "badge" + (a.checked ? " on" : ""), `<div><i class="ic"></i>${a.text}</div><small>${a.checked ? (a.when || "получено") : "закрыто"}</small>`);
+      b.onclick = async () => { if (!confirm(a.checked ? "Снять достижение?" : "Подтверждаешь: факт есть, деньги или подпись? Отметить достижение.")) return; await api("/api/achievement", { raw: a.raw, on: !a.checked }); toast(a.checked ? "Снято" : "Достижение получено"); load(); };
+      g.appendChild(b);
+    });
+    bd.appendChild(g);
+  });
+  p.appendChild(w);
+}
+function bag(p) {
+  const [w, bd] = win("Багаж", `${S.bag.length} ${plural(S.bag.length, "актив", "актива", "активов")}`);
+  const secs = [...new Set(S.bag.map(a => a.section))];
+  secs.forEach(s => {
+    bd.appendChild(h("h3", "sec", s));
+    const g = h("div", "inv");
+    S.bag.filter(a => a.section === s).forEach(a => {
+      const earned = num(a.earned), last = a.last ? D(a.last) : null;
+      const dead = last ? (M.today - last) / 864e5 > 90 : M.dayN > 90;
+      g.appendChild(h("div", "item " + (dead ? "dead" : earned > 0 ? "live" : ""), `<div>${a.text}</div><div class="v">${fmt(earned)} ₽</div><div class="note">${dead ? "мёртвый груз" : last ? "оплата " + iso(last).slice(5) : "ждёт первой оплаты"}</div>`));
+    });
+    bd.appendChild(g);
+  });
+  bd.appendChild(h("div", "note", "Суммы по активам правятся в Багаж.md в Obsidian. Позже их будет считать ночной скрипт из журнала."));
+  p.appendChild(w);
+}
+function skills(p) {
+  const [w, bd] = win("Дерево навыков", "уровень ставится по критерию");
+  S.skills.forEach(s => {
+    const r = h("div", "skill"); r.appendChild(h("div", "", `<b>${s.name}</b>`));
+    const sg = h("div", "seg");
+    for (let i = 1; i <= 5; i++) { const c = h("i", i <= s.lvl ? "on" : ""); c.title = s.criteria[i - 1] || ""; c.onclick = async () => { const lvl = i === s.lvl ? i - 1 : i; if (lvl > s.lvl && !confirm(`Критерий уровня ${lvl}: ${s.criteria[lvl - 1] || "не задан"}. Выполнен?`)) return; await api("/api/skill", { name: s.name, lvl }); toast(`${s.name}: уровень ${lvl}`); load(); }; sg.appendChild(c); }
+    r.appendChild(sg); r.appendChild(h("div", "mono", `${s.lvl}/5`)).style.textAlign = "right";
+    if (s.criteria.length) { const cr = h("div", "crit"); s.criteria.forEach((c, i) => cr.appendChild(h("div", i < s.lvl ? "on" : "", `${i + 1}. ${c}`))); r.appendChild(cr); }
+    bd.appendChild(r);
+  });
+  p.appendChild(w);
+}
+function log(p) {
+  const [w, bd] = win("Журнал", `${M.J.length} ${plural(M.J.length, "запись", "записи", "записей")}`);
+  const names = { money: "Деньги", sale: "Продажа", content: "Контент", practice: "Практика", system: "Система", day: "Вечер" };
+  const t = h("table", "", `<thead><tr><th>Дата</th><th>Тип</th><th>Значение</th><th>Что</th><th></th></tr></thead>`);
+  const tb = h("tbody");
+  [...M.J].sort((a, b) => b.date - a.date).slice(0, 60).forEach(i => {
+    const val = i.sum ? fmt(num(i.sum)) + " ₽" : i.hours ? i.hours + " ч" : i.energy ? i.energy + "/10" : i.n ?? "";
+    const tr = h("tr", "", `<td class="mono">${iso(i.date).slice(5)}</td><td>${names[i.type] || i.type}</td><td class="mono">${val}</td><td>${i.src || ""}</td>`);
+    const td = h("td"); const x = h("button", "x", "×"); x.title = "Удалить"; x.onclick = async () => { if (!confirm("Удалить запись?")) return; await api("/api/log/delete", { raw: i.raw }); toast("Удалено"); load(); }; td.appendChild(x); tr.appendChild(td); tb.appendChild(tr);
+  });
+  t.appendChild(tb); bd.appendChild(t);
+  if (!M.J.length) bd.appendChild(h("div", "empty", "Пусто. Первая запись через кнопку сверху."));
+  p.appendChild(w);
+}
+function rules(p) {
+  const [w, bd] = win("Фундамент", "правится по воскресеньям");
+  bd.className = "bd rules";
+  let md = S.rules.replace(/^---[\s\S]*?---\n/, "").replace(/\[\[([^\]|]+)\|?([^\]]*)\]\]/g, (_, a, b) => b || a.split("/").pop());
+  let html = "", inList = false, inTable = false;
+  md.split("\n").forEach(l => {
+    if (/^\|/.test(l)) { if (/^\|\s*-/.test(l)) return; if (!inTable) { html += "<table>"; inTable = true; } html += "<tr>" + l.split("|").slice(1, -1).map(c => `<td>${c.trim()}</td>`).join("") + "</tr>"; return; } else if (inTable) { html += "</table>"; inTable = false; }
+    if (/^(- |\d+\. )/.test(l)) { if (!inList) { html += "<ul>"; inList = true; } html += `<li>${l.replace(/^(- |\d+\. )/, "")}</li>`; return; } else if (inList) { html += "</ul>"; inList = false; }
+    if (/^# /.test(l)) return; if (/^## /.test(l)) { html += `<h2>${l.slice(3)}</h2>`; return; }
+    if (l.trim()) html += `<p>${l}</p>`;
+  });
+  bd.innerHTML = html.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  p.appendChild(w);
+}
+
+// ---------- действия ----------
+const TYPES = [["sale", "Продажа"], ["content", "Контент"], ["practice", "Практика"], ["money", "Деньги"], ["day", "Вечер"]];
+function openLog(type = "sale") {
+  const m = $("#modal"); m.innerHTML = "";
+  const [w, bd] = win("Записать действие", iso(M.today)); w.style.border = "0";
+  const tb = h("div", "typebar"); TYPES.forEach(([k, l]) => { const b = h("button", k === type ? "on" : "", l); b.onclick = () => openLog(k); tb.appendChild(b); }); bd.appendChild(tb);
+  const f = h("form");
+  const field = (name, label, attrs = "") => f.appendChild(h("div", "f", `<label>${label}</label><input name="${name}" ${attrs}>`));
+  field("d", "Дата", `type="date" value="${iso(M.today)}"`);
+  if (type === "sale") field("n", "Сколько действий: сообщений, звонков, постов с оффером", 'type="number" min="1" value="1" required');
+  if (type === "content") field("n", "Сколько публикаций", 'type="number" min="1" value="1" required');
+  if (type === "practice") field("hours", "Часов практики", 'type="number" step="0.5" min="0.5" value="1" required');
+  if (type === "money") field("sum", "Сумма, ₽. Только поступившие деньги или подписанная договорённость", 'type="number" min="1" required');
+  if (type === "day") field("energy", "Энергия, 1-10", 'type="number" min="1" max="10" value="7" required');
+  field("src", type === "day" ? "Что бросил сегодня и почему" : type === "money" ? "Источник: продукт, клиент. По нему считаются side quests" : "Что именно", 'placeholder=""');
+  const act = h("div", "act"); act.style.display = "flex"; act.style.gap = "8px";
+  const ok = h("button", "acc", "Записать"); ok.type = "submit"; const cancel = h("button", "ghost", "Отмена"); cancel.type = "button"; cancel.onclick = closeModal;
+  act.append(ok, cancel); f.appendChild(act);
+  f.onsubmit = async e => { e.preventDefault(); const data = Object.fromEntries(new FormData(f)); data.type = type; const before = M; await api("/api/log", data); closeModal(); await load();
+    const dx = M.xpResult - before.xpResult, dp = M.xpProcess - before.xpProcess;
+    if (dx) { PENDING_WEEK = before.moneyWeek; if (SC) SC.applyBoss(); damage(`-${fmt(num(data.sum))} ₽`); } else if (dp) damage(`+${dp} XP`);
+    toast(dx ? `+${dx} XP результата. Босс получил ${fmt(num(data.sum))} ₽ урона` : dp ? `+${dp} XP процесса` : "Записано"); };
+  bd.appendChild(f); m.appendChild(w); $("#ov").classList.add("on"); setTimeout(() => { const i = f.querySelector("input[name=n],input[name=sum],input[name=hours],input[name=energy]"); if (i) i.focus(); }, 30);
+}
+function closeModal() { $("#ov").classList.remove("on"); }
+function levelUp(n) { if (SC && SC.celebrate) SC.celebrate(); const m = $("#modal"); m.innerHTML = `<div class="lvlup"><div class="lbl">Новый уровень</div><div class="n">${n}</div><p class="note" style="margin:16px 0">Только деньги растят уровень. Так и должно быть.</p><button class="acc" onclick="closeModal()">Продолжить</button></div>`; $("#ov").classList.add("on"); }
+$("#ov").addEventListener("click", e => { if (e.target.id === "ov") closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); if (e.key === "n" && !$("#ov").classList.contains("on") && !/input|textarea/i.test(e.target.tagName)) openLog(); });
+load();
+</script>
+</body>
+</html>

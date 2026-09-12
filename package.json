@@ -1,0 +1,24 @@
+{
+  "name": "life-rpg",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Кабинет персонажа: жизнь как RPG поверх markdown-файлов в Obsidian. Уровень только за деньги, боссы, квесты, стрик, 3D-сцена.",
+  "scripts": {
+    "start": "node server.mjs",
+    "init": "node bin/init.mjs",
+    "nightly": "node scripts/nightly.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "repository": "github:komzor5051/life-rpg",
+  "keywords": [
+    "gamification",
+    "obsidian",
+    "rpg",
+    "productivity",
+    "life-rpg"
+  ]
+}
