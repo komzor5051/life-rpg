@@ -93,6 +93,20 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.life-rpg.plist
 
 Логика: 1 XP результата за 1 000 денег, уровень каждые `xp_per_level` XP, здоровье босса недели это `weekly_goal` минус деньги недели, side quest получает деньги по регулярному выражению `match` из поля `src`.
 
+## API
+
+Сервер отдаёт JSON и картинки, ими пользуется кабинет и любой внешний виджет (например, в menu bar).
+
+| Эндпоинт | Что отдаёт |
+|---|---|
+| `GET /api/state` | сырое состояние: `cfg` (frontmatter персонажа), `journal`, `achievements`, `bag`, `skills`, `quests`, `today`, `rules`, ссылки на `avatar`, `hero`, `hero2` |
+| `GET /api/summary` | посчитанная сводка, та же логика, что в кабинете: `name`, `class`, `level`, `xpIn`, `perLevel`, `xpResult`, `xpProcess`, `moneyAll`, `moneyMonth`, `moneyWeek`, `monthlyGoal`, `weeklyGoal`, `bossHp`, `bossDead`, `streak`, `freezesLeft`, `dayN`, `today {sale, content, day}`, `todayCounts {sale, content, system}`, `mainQuest {title, boss, progress, target}` или `null` |
+| `GET /hero` | PNG героя как лежит в хранилище, с маджента-фоном |
+| `GET /hero-thumb` | PNG героя высотой 320 px с вырезанным фоном. Вырезает `python3` с Pillow, результат кэшируется в системном tmp. Без Pillow отдаётся исходник |
+| `POST /api/log` | дописать строку в `Журнал.md`. Тело JSON: `type` (money, sale, content, practice, day, system), `d` (по умолчанию сегодня), `sum`, `n`, `hours`, `energy`, `src` |
+
+Остальные POST: `/api/log/delete` (`raw`), `/api/achievement` (`raw`, `on`), `/api/skill` (`name`, `lvl`), `/api/quest` (`file`, `patch`), `/api/quest/step` (`file`, `text`, `done`).
+
 ## Стек
 
 Node без зависимостей, один HTML, Three.js r128 лежит в `public/`. Шрифты Inter Tight, Onest и IBM Plex Mono подгружаются с Google Fonts, без интернета работает системный шрифт.

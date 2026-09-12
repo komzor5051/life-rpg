@@ -2,6 +2,8 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
+import { execFile } from "node:child_process";
 
 const APP = path.dirname(new URL(import.meta.url).pathname);
 const CFG_PATH = process.env.RPG_CONFIG || path.join(APP, "rpg.config.json");
@@ -87,6 +89,71 @@ function state() {
   return { cfg, avatar, hero, hero2, journal, achievements, bag, skills, quests, today: today(), rules };
 }
 
+// ---------- сводка для виджета (повторяет compute() из index.html) ----------
+const num = v => Number(String(v ?? "").replace(/\s/g, "")) || 0;
+const D = s => { const [y, m, d] = String(s).slice(0, 10).split("-").map(Number); return new Date(y, m - 1, d); };
+const iso = d => d.toLocaleDateString("sv-SE");
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const isoWeek = d => { const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - day); const y = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); return x.getUTCFullYear() + "-" + Math.ceil((((x - y) / 864e5) + 1) / 7); };
+function summary() {
+  const s = state(), cfg = s.cfg, td = D(s.today), start = D(cfg.start || s.today);
+  const J = s.journal.map(i => ({ ...i, date: D(i.d) }));
+  const by = t => J.filter(i => i.type === t);
+  const sameMonth = i => i.date.getFullYear() === td.getFullYear() && i.date.getMonth() === td.getMonth();
+  const sameWeek = i => isoWeek(i.date) === isoWeek(td);
+  const isToday = i => iso(i.date) === s.today;
+  const cnt = (a, f = "n") => a.reduce((x, i) => x + (i[f] === undefined ? (f === "n" ? 1 : 0) : num(i[f])), 0);
+  const money = by("money"), sales = by("sale"), content = by("content"), practice = by("practice"), system = by("system"), days = by("day");
+  const moneyAll = cnt(money, "sum"), moneyMonth = cnt(money.filter(sameMonth), "sum"), moneyWeek = cnt(money.filter(sameWeek), "sum");
+  const perLevel = num(cfg.xp_per_level) || 250;
+  const xpResult = Math.floor(moneyAll / 1000), level = Math.floor(xpResult / perLevel) + 1, xpIn = xpResult - (level - 1) * perLevel;
+  const xpProcess = cnt(sales) + cnt(content) + cnt(practice, "hours");
+  const monthlyGoal = num(cfg.monthly_goal) || 300000, weeklyGoal = num(cfg.weekly_goal) || 75000;
+  // стрик: дни с записью sale, от сегодня или вчера назад до start; заморозки в календарный месяц, два пропуска подряд обнуляют
+  const saleDays = new Set(sales.map(i => iso(i.date)));
+  const freezes = num(cfg.freezes_per_month) || 2;
+  let streak = 0, missed = 0, frozen = {}, cur = saleDays.has(s.today) ? td : addDays(td, -1);
+  while (cur >= start) {
+    const k = iso(cur);
+    if (saleDays.has(k)) { streak++; missed = 0; }
+    else { missed++; const mk = k.slice(0, 7); frozen[mk] = (frozen[mk] || 0) + 1; if (missed >= 2 || frozen[mk] > freezes) break; }
+    cur = addDays(cur, -1);
+  }
+  const dayN = Math.max(0, Math.round((td - start) / 864e5) + 1);
+  const mq = s.quests.find(q => q.kind === "main");
+  const questProgress = q => { if (!q.match) return moneyMonth; const re = new RegExp(q.match, "i"); return cnt(money.filter(i => re.test(i.src || "")), "sum"); };
+  return {
+    name: cfg.name || "", class: cfg.class || "", level, xpIn, perLevel, xpResult, xpProcess,
+    moneyAll, moneyMonth, moneyWeek, monthlyGoal, weeklyGoal,
+    bossHp: Math.max(0, weeklyGoal - moneyWeek), bossDead: moneyWeek >= weeklyGoal,
+    streak, freezesLeft: Math.max(0, freezes - (frozen[s.today.slice(0, 7)] || 0)), dayN,
+    today: { sale: sales.some(isToday), content: content.some(isToday), day: days.some(isToday) },
+    todayCounts: { sale: cnt(sales.filter(isToday)), content: cnt(content.filter(isToday)), system: cnt(system.filter(isToday)) },
+    mainQuest: mq ? { title: mq.title, boss: mq.boss || "", progress: questProgress(mq), target: num(mq.target) } : null,
+  };
+}
+
+// ---------- миниатюра героя без маджента-фона (python3 + Pillow, кэш в tmp) ----------
+const KEYOUT_PY = `
+import sys
+from PIL import Image, ImageChops
+im = Image.open(sys.argv[1]).convert("RGBA")
+r, g, b, _ = im.split()
+m = ImageChops.subtract(ImageChops.darker(r, b), g)  # min(r,b) - g, ниже нуля режется в 0
+alpha = m.point(lambda v: 255 if v <= 60 else max(0, round(255 * (1 - (v - 60) / 60))))
+edge = m.point(lambda v: 255 if v > 60 else 0)  # где давим розовый ореол: r,b не выше g+40
+gp = g.point(lambda v: min(255, v + 40))
+r = Image.composite(ImageChops.darker(r, gp), r, edge); b = Image.composite(ImageChops.darker(b, gp), b, edge)
+out = Image.merge("RGBA", (r, g, b, alpha))
+h = int(sys.argv[3]); out = out.resize((max(1, round(out.width * h / out.height)), h), Image.LANCZOS)
+out.save(sys.argv[2], "PNG")
+`;
+function heroThumb(src, height = 320) {
+  const cache = path.join(os.tmpdir(), `life-rpg-hero-${Math.floor(fs.statSync(src).mtimeMs)}-${height}.png`);
+  if (fs.existsSync(cache)) return Promise.resolve(cache);
+  return new Promise(r => execFile("python3", ["-c", KEYOUT_PY, src, cache, String(height)], { timeout: 15000 }, err => r(err ? null : cache)));
+}
+
 // ---------- записи ----------
 function appendJournal(entry) {
   const f = path.join(ROOT, "Журнал.md");
@@ -150,6 +217,15 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   try {
     if (url.pathname === "/api/state") return json(res, 200, state());
+    if (url.pathname === "/api/summary") return json(res, 200, summary());
+    if (url.pathname === "/hero-thumb") {
+      const cfg = frontmatter(read(path.join(ROOT, "00 Персонаж.md")));
+      const p = resolveImg(cfg.hero, "hero");
+      if (!p) { res.writeHead(404); return res.end("no image"); }
+      const t = (await heroThumb(p)) || p; // без python/Pillow отдаём исходник как есть
+      res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" });
+      return fs.createReadStream(t).pipe(res);
+    }
     if (["/avatar", "/hero", "/hero2"].includes(url.pathname)) {
       const cfg = frontmatter(read(path.join(ROOT, "00 Персонаж.md")));
       const key = url.pathname.slice(1);
