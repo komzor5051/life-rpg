@@ -107,6 +107,30 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.life-rpg.plist
 
 Остальные POST: `/api/log/delete` (`raw`), `/api/achievement` (`raw`, `on`), `/api/skill` (`name`, `lvl`), `/api/quest` (`file`, `patch`), `/api/quest/step` (`file`, `text`, `done`).
 
+## Виджет в строке меню (macOS)
+
+Персонаж живёт в menu bar через [SwiftBar](https://github.com/swiftbar/SwiftBar). Плагин лежит в `menubar/life-rpg.30s.sh`, обновляется раз в 30 секунд и ходит на тот же локальный сервер.
+
+Установка:
+
+```bash
+brew install --cask swiftbar
+mkdir -p ~/.swiftbar
+defaults write com.ameba.SwiftBar PluginDirectory ~/.swiftbar
+ln -sf ~/lvmn-rpg/menubar/life-rpg.30s.sh ~/.swiftbar/life-rpg.30s.sh
+open -a SwiftBar
+```
+
+Перечитать плагины без перезапуска: `open -g "swiftbar://refreshallplugins"`. Адрес сервера переопределяется переменной `LIFE_RPG_URL` (по умолчанию `http://localhost:4877`).
+
+Что показывает:
+
+- В строке меню: `LVL 1 · 75 000 HP`. Когда босс недели повержен: `LVL 1 · босс повержен`. Если после 11:00 продажи за день нет, в конец добавляется `· продажа?`.
+- В меню: картинка героя из `/hero-thumb`, имя и класс, опыт с полосой из 20 сегментов, стрик продаж и заморозки, HP босса недели с полосой, main quest с прогрессом, блок «Сегодня» с чекбоксами `[x]`/`[ ]` для продажи, публикации и закрытия дня.
+- Действия: «Записать продажу (+1)» и «Записать публикацию (+1)» шлют `POST /api/log` с сегодняшней датой, «Открыть кабинет» открывает `http://localhost:4877`, «Обновить» перечитывает данные.
+
+Если сервер не запущен, в строке меню висит `RPG офлайн`, в меню остаётся только «Открыть кабинет» и «Обновить». Данные берутся из `GET /api/summary`, JSON разбирает системный `python3`, `jq` не нужен.
+
 ## Стек
 
 Node без зависимостей, один HTML, Three.js r128 лежит в `public/`. Шрифты Inter Tight, Onest и IBM Plex Mono подгружаются с Google Fonts, без интернета работает системный шрифт.
