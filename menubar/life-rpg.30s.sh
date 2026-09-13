@@ -127,7 +127,8 @@ else:
     title = "LVL %s · %s HP" % (level, num(boss_hp))
 if not today.get("sale") and now.hour >= 11:
     title += " · касание?"
-print("%s | font=.AppleSystemUIFont size=12" % title)
+# SwiftBar 2: the whole dropdown is a web view of the server's /menu page (card + actions in one place).
+print("%s | font=.AppleSystemUIFont size=12 webview=true href=%s/menu.html webvieww=340 webviewh=%s" % (title, base, 600 if d.get("mainQuest") else 540))
 print("---")
 
 # --- card (rendered PNG) or text fallback ---

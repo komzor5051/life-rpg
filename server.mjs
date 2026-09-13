@@ -121,6 +121,11 @@ function summary() {
   }
   const dayN = Math.max(0, Math.round((td - start) / 864e5) + 1);
   const mq = s.quests.find(q => q.kind === "main");
+  // Пресеты для быстрой продажи: поле quick во frontmatter или последние источники денег.
+  const presets = [], seen = new Set();
+  const push = (src, sum) => { const k = String(src || "").toLowerCase(); if (!k || seen.has(k)) return; seen.add(k); presets.push({ src, sum }); };
+  String(cfg.quick || "").split(",").map(x => x.trim()).filter(Boolean).forEach(x => { const m = x.match(/^(.*?)\s+([\d\s]+)$/); m ? push(m[1].trim(), num(m[2])) : push(x, 0); });
+  [...money].sort((a, b) => String(b.d).localeCompare(String(a.d))).forEach(i => push(String(i.src || "").split(",")[0].trim(), num(i.sum)));
   const questProgress = q => { if (!q.match) return moneyMonth; const re = new RegExp(q.match, "i"); return cnt(money.filter(i => re.test(i.src || "")), "sum"); };
   return {
     name: cfg.name || "", class: cfg.class || "", level, xpIn, perLevel, xpResult, xpProcess,
@@ -129,6 +134,7 @@ function summary() {
     streak, freezesLeft: Math.max(0, freezes - (frozen[s.today.slice(0, 7)] || 0)), dayN,
     today: { sale: sales.some(isToday), content: content.some(isToday), day: days.some(isToday) },
     todayCounts: { sale: cnt(sales.filter(isToday)), content: cnt(content.filter(isToday)), system: cnt(system.filter(isToday)) },
+    presets: presets.slice(0, 5),
     mainQuest: mq ? { title: mq.title, boss: mq.boss || "", progress: questProgress(mq), target: num(mq.target) } : null,
   };
 }
@@ -236,6 +242,7 @@ http.createServer(async (req, res) => {
     }
     if (req.method === "POST") {
       const b = await body(req);
+      if (url.pathname === "/api/open") { if (process.platform === "darwin") execFile("open", [`http://localhost:${PORT}/`]); return json(res, 200, { ok: true }); }
       if (url.pathname === "/api/log") { appendJournal(b); return json(res, 200, { ok: true }); }
       if (url.pathname === "/api/log/delete") return json(res, 200, { ok: deleteJournal(b.raw) });
       if (url.pathname === "/api/achievement") return json(res, 200, { ok: toggleAchievement(b.raw, !!b.on) });
