@@ -306,8 +306,9 @@ function compute(s) {
   return { cfg, today, start, J, money, sales, days, moneyAll, moneyMonth, moneyWeek, perLevel, xpResult, level, xpIn, xpProcess, goals, wk, streak, freezes, frozenNow: frozen[iso(today).slice(0, 7)] || 0, dayN, questProgress };
 }
 
+let RAW = "";
 async function load() {
-  S = await fetch("/api/state").then(r => r.json());
+  const txt = await fetch("/api/state").then(r => r.text()); RAW = txt; S = JSON.parse(txt);
   const prev = M ? M.level : Number(localStorage.getItem("rpg.level") || 0);
   M = compute(S);
   render();
@@ -672,6 +673,15 @@ $("#ov").addEventListener("click", e => { if (e.target.id === "ov") closeModal()
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); const free = !$("#ov").classList.contains("on") && !/input|textarea/i.test(e.target.tagName);
   if (e.key === "n" && free) openLog(); if (e.key === "p" && free) { e.preventDefault(); $("#quick input[name=sum]").focus(); } });
 load();
+// Автообновление: записи из строки меню и ночного скрипта подхватываются без перезагрузки.
+async function poll() {
+  if (document.hidden || $("#ov").classList.contains("on")) return;
+  const q = $("#quick"); if (q && (q.sum.value || q.src.value)) return;
+  try { const txt = await fetch("/api/state", { cache: "no-store" }).then(r => r.text()); if (txt !== RAW) { RAW = txt; S = JSON.parse(txt); const prev = M.level; M = compute(S); render(); if (M.level > prev) levelUp(M.level); toast("Обновлено"); } } catch (e) {}
+}
+setInterval(poll, 15000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+window.addEventListener("focus", poll);
 </script>
 </body>
 </html>
