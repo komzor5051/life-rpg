@@ -66,11 +66,7 @@ TMP="${TMPDIR:-/tmp}/life-rpg-menubar"; mkdir -p "$TMP"
 printf '%s' "$JSON" > "$TMP/summary.json"
 curl -s -m 3 -f "$BASE/hero-thumb" -o "$TMP/hero.png" 2>/dev/null
 CARD=""
-if [ -f "$RENDER" ] && /usr/bin/python3 "$RENDER" "$TMP/summary.json" "$TMP/hero.png" "$TMP/card.png" 2>"$TMP/render.err"; then
-  CARD="$(base64 < "$TMP/card.png" | tr -d '\n')"
-fi
-HERO=""
-[ -z "$CARD" ] && HERO="$(base64 < "$TMP/hero.png" 2>/dev/null | tr -d '\n')"
+HERO="$(base64 < "$TMP/hero.png" 2>/dev/null | tr -d '\n')"
 
 JSON="$JSON" HERO="$HERO" CARD="$CARD" SELF="$SELF" BASE="$BASE" /usr/bin/python3 - <<'PY'
 import json, os, sys, datetime
@@ -127,8 +123,7 @@ else:
     title = "LVL %s · %s HP" % (level, num(boss_hp))
 if not today.get("sale") and now.hour >= 11:
     title += " · касание?"
-# SwiftBar 2: the whole dropdown is a web view of the server's /menu page (card + actions in one place).
-print("%s | font=.AppleSystemUIFont size=12 webview=true href=%s/menu.html webvieww=340 webviewh=%s" % (title, base, 600 if d.get("mainQuest") else 540))
+print("%s | font=.AppleSystemUIFont size=12" % title)
 print("---")
 
 # --- card (rendered PNG) or text fallback ---
