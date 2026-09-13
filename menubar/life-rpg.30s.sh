@@ -11,6 +11,8 @@
 
 BASE="${LIFE_RPG_URL:-http://localhost:4877}"
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+REAL="$(/usr/bin/python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$SELF")"   # follow the symlink to find render_card.py
+RENDER="$(dirname "$REAL")/render_card.py"
 TODAY="$(date +%F)"
 
 # --- action mode: life-rpg.30s.sh sale  (asks sum and source via dialog) -----
@@ -64,7 +66,7 @@ TMP="${TMPDIR:-/tmp}/life-rpg-menubar"; mkdir -p "$TMP"
 printf '%s' "$JSON" > "$TMP/summary.json"
 curl -s -m 3 -f "$BASE/hero-thumb" -o "$TMP/hero.png" 2>/dev/null
 CARD=""
-if /usr/bin/python3 "$(dirname "$SELF")/render_card.py" "$TMP/summary.json" "$TMP/hero.png" "$TMP/card.png" 2>/dev/null; then
+if [ -f "$RENDER" ] && /usr/bin/python3 "$RENDER" "$TMP/summary.json" "$TMP/hero.png" "$TMP/card.png" 2>"$TMP/render.err"; then
   CARD="$(base64 < "$TMP/card.png" | tr -d '\n')"
 fi
 HERO=""
