@@ -13,6 +13,19 @@ BASE="${LIFE_RPG_URL:-http://localhost:4877}"
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 TODAY="$(date +%F)"
 
+# --- action mode: life-rpg.30s.sh sale  (asks sum and source via dialog) -----
+if [ "$1" = "sale" ]; then
+  SUM="$(osascript -e 'text returned of (display dialog "Сумма продажи, ₽" default answer "" with title "Продал" buttons {"Отмена","Записать"} default button "Записать")' 2>/dev/null | tr -d ' ')"
+  [ -z "$SUM" ] && exit 0
+  case "$SUM" in ''|*[!0-9]*) osascript -e 'display notification "Нужно число" with title "Продажа не записана"'; exit 0 ;; esac
+  SRC="$(osascript -e 'text returned of (display dialog "Что и кому: консультация, Иван" default answer "" with title "Продал" buttons {"Записать"} default button "Записать")' 2>/dev/null | sed 's/["\\]//g')"
+  curl -s -m 5 -X POST "$BASE/api/log" \
+    -H 'Content-Type: application/json' \
+    -d "{\"type\":\"money\",\"d\":\"$TODAY\",\"sum\":$SUM,\"src\":\"$SRC\"}" >/dev/null \
+    && osascript -e "display notification \"$SUM ₽ · $SRC\" with title \"Продажа записана\""
+  exit 0
+fi
+
 # --- action mode: life-rpg.30s.sh log sale|content ---------------------------
 if [ "$1" = "log" ]; then
   TYPE="${2:-sale}"
@@ -90,7 +103,7 @@ if boss_dead:
 else:
     title = "LVL %s · %s HP" % (level, num(boss_hp))
 if not today.get("sale") and now.hour >= 11:
-    title += " · продажа?"
+    title += " · касание?"
 print("%s | %s" % (title, MONO))
 print("---")
 
@@ -128,14 +141,15 @@ if mq:
 print("---")
 print("Сегодня, день %s | %s" % (d.get("dayN", "?"), MONO))
 def mark(flag): return "[x]" if flag else "[ ]"
-print("%s продажа (%s) | %s" % (mark(today.get("sale")), counts.get("sale", 0), MONO))
+print("%s касание (%s) | %s" % (mark(today.get("sale")), counts.get("sale", 0), MONO))
 print("%s публикация (%s) | %s" % (mark(today.get("content")), counts.get("content", 0), MONO))
 print("%s день закрыт | %s" % (mark(today.get("day")), MONO))
 
 # --- actions ---
 print("---")
-print("Записать продажу (+1) | bash=%s param1=log param2=sale terminal=false refresh=true" % self_path)
-print("Записать публикацию (+1) | bash=%s param1=log param2=content terminal=false refresh=true" % self_path)
+print("Продал: сумма… | bash=%s param1=sale terminal=false refresh=true" % self_path)
+print("Касание +1 | bash=%s param1=log param2=sale terminal=false refresh=true" % self_path)
+print("Публикация +1 | bash=%s param1=log param2=content terminal=false refresh=true" % self_path)
 print("Открыть кабинет | href=%s" % base)
 print("Обновить | refresh=true")
 PY
